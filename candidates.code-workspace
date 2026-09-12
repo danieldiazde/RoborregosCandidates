@@ -1,0 +1,8 @@
+{
+  "folders": [
+    { "name": "firmware", "path": "firmware" },
+    { "name": "vision",   "path": "vision" },
+    { "name": "docs",     "path": "docs" },
+    { "name": "tools",    "path": "tools" }
+  ]
+}
