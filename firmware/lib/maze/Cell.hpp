@@ -1,17 +1,15 @@
 #pragma once
 #include <cstdint>
+#include "TileColor.hpp"
+#include "Terrain.hpp"
 
 namespace maze {
-
-    enum class TileColor : std::uint8_t { None = 0, Cyan, Yellow, Orange, Magenta};
-    enum class Terrain : std::uint8_t { Flat = 0, Stairs, Speedbump, Ramp };
-
 
     class Cell {
     private:
         bool visited_ = false;
         std::uint8_t size_ = 30; //cm
-        TileColor color_ = TileColor::None;
+        TileColor color_ = TileColor::Unknown;
         Terrain terrain_ = Terrain::Flat;
     public:
         Cell() = default;
