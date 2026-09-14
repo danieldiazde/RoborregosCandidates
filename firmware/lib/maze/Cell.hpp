@@ -11,8 +11,8 @@ namespace maze {
     private:
         bool visited_ = false;
         std::uint8_t size_ = 30; //cm
-        TileColor color_;
-        Terrain terrain_;
+        TileColor color_ = TileColor::None;
+        Terrain terrain_ = Terrain::Flat;
     public:
         Cell() = default;
         bool isVisited() const;
