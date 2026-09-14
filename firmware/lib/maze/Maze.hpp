@@ -25,8 +25,8 @@ public:
     Cell&       cell(std::int8_t x, std::int8_t y);
 
 private:
-    const WallState& wallSlot(std::int8_t x, std::int8_t y, Direction d) const;
-    WallState&       wallSlot(std::int8_t x, std::int8_t y, Direction d);
+    const WallState* slot(std::int8_t x, std::int8_t y, Direction d) const;
+    WallState*       slot(std::int8_t x, std::int8_t y, Direction d);
 
     WallState verticalWalls_[kSize + 1][kSize];
     WallState horizontalWalls_[kSize][kSize + 1];
