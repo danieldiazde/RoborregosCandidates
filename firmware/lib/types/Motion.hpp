@@ -22,4 +22,10 @@ struct WallReading {
     bool valid;   // false if sensor data was bad
 };
 
+struct LineReading {
+    bool left;
+    bool right;
+    bool valid;
+};
+
 }  // namespace maze
