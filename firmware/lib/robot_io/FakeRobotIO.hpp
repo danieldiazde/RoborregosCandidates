@@ -5,9 +5,17 @@
 
 namespace maze {
 
+struct MotionCosts { // Necessary for testing and reducing time from timer, improve once real ones come in
+    std::uint32_t advanceMs    = 3000;
+    std::uint32_t strafeMs     = 3500;
+    std::uint32_t turnMs       = 1500;
+    std::uint32_t turnAroundMs = 2500;
+};
+
+
 class FakeRobotIO : public IRobotIO {
 public:
-    FakeRobotIO(const Maze& truth, std::int8_t x, std::int8_t y, Direction heading);
+    FakeRobotIO(const Maze& truth, std::int8_t x, std::int8_t y, Direction heading, MotionCosts costs_ = MotionCosts{});
 
     // Sensors
     WallReading senseWalls() override;
@@ -38,19 +46,28 @@ public:
     std::int8_t   y() const;
     Direction     heading() const;
     std::uint16_t moveCount() const;
+    std::uint16_t turnCount() const;
+    std::uint16_t blockedCount() const;
+    std::uint32_t elapsedMs() const;
+
 
 private:
-    ActionResult moveToward(Direction d);
+    ActionResult moveToward(Direction d, std::uint32_t costMs);
+    void         spend(std::uint32_t ms);
 
     const Maze&   truth_;
     std::int8_t   x_;
     std::int8_t   y_;
     Direction     heading_;
+    MotionCosts   costs_;
 
     Possession    possession_      = Possession::Empty;
-    std::uint32_t millisRemaining_ = 360000;   // 6 minutes
+    std::uint32_t millisRemaining_ = 360000;
+    std::uint32_t elapsedMs_       = 0;
     TileColor     lastShown_       = TileColor::Unknown;
     std::uint16_t moveCount_       = 0;
+    std::uint16_t turnCount_       = 0;
+    std::uint16_t blockedCount_    = 0;
 };
 
 }  // namespace maze
