@@ -11,9 +11,7 @@ std::uint16_t MazeSolver::logLength() const { return logLen_; }
 Direction     MazeSolver::logAt(std::uint16_t i) const { return log_[i]; }
 
 void MazeSolver::establishStart() {
-    WallReading r = io_.senseWalls();
-    pose_ = r.left ? Pose{0, 0, Direction::North}
-                   : Pose{Maze::kSize - 1, 0, Direction::North};
+    pose_ = Pose{0, 0, Direction::North};
 }
 
 void MazeSolver::observe(RunResult& result) {

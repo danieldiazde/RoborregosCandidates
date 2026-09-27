@@ -23,7 +23,10 @@ GeneratedMaze MazeGenerator::generate() {
     Direction horizontal = (sx == 0) ? Direction::East  : Direction::West;
 
     // Choose if it starts moving towards middle or up relative to the robot
-    Direction heading  = randomBelow(2) ? vertical : horizontal;
+    Direction leftOfVertical = turnLeft(vertical);
+    bool boundaryLeftOfVertical =
+    !m.contains(sx + deltaX(leftOfVertical), sy + deltaY(leftOfVertical));
+    Direction heading = boundaryLeftOfVertical ? vertical : horizontal;
 
     // Make it a maze
     closeAllWalls(m);
@@ -124,7 +127,6 @@ void MazeGenerator::placeTiles(Maze& m, std::int8_t sx, std::int8_t sy) {
     m.cell(sx, sy).setColor(TileColor::Green);
 
     // Choose placement of random red tile
-    bool chosen = false;
     std::int8_t ex = randomBelow(2) ? N - 1 : 0;
     std::int8_t ey = randomBelow(2) ? N - 1 : 0;
     while (ex == sx && ey == sy) {

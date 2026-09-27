@@ -51,16 +51,13 @@ void test_same_seed_same_maze() {
         }
 }
 
-void test_both_handedness_occur() {
-    int mazeOnLeft = 0, mazeOnRight = 0;
+void test_boundary_always_on_left() {
     for (std::uint32_t seed = 0; seed < 200; ++seed) {
         GeneratedMaze g = make(seed, 8);
         Direction left = turnLeft(g.startHeading);
-        if (g.maze.contains(g.startX + deltaX(left), g.startY + deltaY(left))) ++mazeOnLeft;
-        else                                                                   ++mazeOnRight;
+        TEST_ASSERT_FALSE(g.maze.contains(g.startX + deltaX(left),
+                                          g.startY + deltaY(left)));
     }
-    TEST_ASSERT_GREATER_THAN(0, mazeOnLeft);
-    TEST_ASSERT_GREATER_THAN(0, mazeOnRight);
 }
 
 int main(int, char**) {
@@ -70,6 +67,6 @@ int main(int, char**) {
     RUN_TEST(test_perfect_maze_is_a_spanning_tree);
     RUN_TEST(test_extra_openings_add_exactly_that_many);
     RUN_TEST(test_same_seed_same_maze);
-    RUN_TEST(test_both_handedness_occur);
+    RUN_TEST( test_boundary_always_on_left);
     return UNITY_END();
 }
