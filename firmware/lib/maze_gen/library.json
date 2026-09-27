@@ -1,0 +1,9 @@
+{
+  "name": "maze_gen",
+  "version": "0.1.0",
+  "description": "Genearte mazes for testing algorithms",
+  "dependencies": {
+    "types": "*",
+    "grid": "*"
+  }
+}

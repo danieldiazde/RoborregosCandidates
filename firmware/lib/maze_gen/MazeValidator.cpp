@@ -67,6 +67,11 @@ ValidationResult validate(const GeneratedMaze& g) {
         return {false, "start not in a corner"};
     if (!m.contains(g.startX + deltaX(g.startHeading), g.startY + deltaY(g.startHeading)))
         return {false, "start heading points out of the maze"};
+    for (std::int8_t x = 0; x < N; ++x) {
+        for (std::int8_t y = 0; y < N; ++y) {
+            if (m.cell(x, y).color() == TileColor::Red && !isCorner(x, y)) return {false, "red tile not placed in corner"};
+        }
+    }
 
     int counts[8] = {};
     for (std::int8_t x = 0; x < N; ++x)

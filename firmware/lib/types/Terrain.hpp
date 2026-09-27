@@ -8,6 +8,5 @@ enum class Terrain : std::uint8_t {
     SpeedBump,
     Stairs,
     Ramps
-
 };
 }
