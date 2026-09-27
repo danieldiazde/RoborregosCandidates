@@ -1,0 +1,10 @@
+{
+  "name": "maze",
+  "version": "0.1.0",
+  "description": "Exploration strategies and solver for maze",
+  "dependencies": {
+    "types": "*",
+    "grid": "*",
+    "robot_io": "*"
+  }
+}
