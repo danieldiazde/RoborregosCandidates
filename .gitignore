@@ -9,3 +9,7 @@ firmware/.vscode/launch.json
 __pycache__/tools/results.csv
 *.gch
 firmware/lib/**/output/
+*.zip
+*.patch
+*.zip
+*.patch
