@@ -40,4 +40,8 @@ std::optional<Direction> directionTo(std::int8_t fromX, std::int8_t fromY,
     return std::nullopt;   
 }
 
+Direction dirAt(int i) {
+    return static_cast<Direction>(i);
+}
+
 }  // namespace maze

@@ -11,6 +11,7 @@ Direction turnLeft(Direction d);
 Direction opposite(Direction d);
 std::int8_t deltaX(Direction d);
 std::int8_t deltaY(Direction d);
+Direction dirAt(int i);
 std::optional<Direction> directionTo(std::int8_t fromX, std::int8_t fromY,
                                      std::int8_t toX,   std::int8_t toY);
 

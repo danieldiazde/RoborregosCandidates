@@ -7,8 +7,6 @@ namespace {
 
 constexpr std::int8_t N = Maze::kSize;
 
-Direction dirAt(int i) { return static_cast<Direction>(i); }
-
 bool isCorner(std::int8_t x, std::int8_t y) {
     return (x == 0 || x == N - 1) && (y == 0 || y == N - 1);
 }
