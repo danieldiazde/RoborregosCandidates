@@ -7,6 +7,7 @@
 #include "WallFollower.hpp"
 #include "DfsExplorer.hpp"
 #include "DfsStraightFirst.hpp"
+#include "FrontierExplorer.hpp"
 
 using namespace maze;
 
@@ -50,6 +51,7 @@ int main() {
             if (!runOne<WallFollower>(seed, loops))     return 1;
             if (!runOne<DfsExplorer>(seed, loops))      return 1;
             if (!runOne<DfsStraightFirst>(seed, loops)) return 1;
+            if (!runOne<FrontierExplorer>(seed, loops)) return 1;
         }
 
     return 0;

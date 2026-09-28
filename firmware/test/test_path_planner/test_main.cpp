@@ -75,6 +75,33 @@ void test_red_is_allowed_as_the_target() {
     ASSERT_STEP(Direction::North, firstStepToward(m, 0, 0, 0, 1));
 }
 
+void test_nearest_unvisited_picks_the_closest() {
+    // From (1,0): (0,0) is 1 step west, (1,2) is 2 steps north. Both unvisited.
+    Maze m;
+    m.setWall(1, 0, Direction::West,  WallState::Open);
+    m.setWall(1, 0, Direction::North, WallState::Open);
+    m.setWall(1, 1, Direction::North, WallState::Open);
+    m.cell(1, 0).markVisited();
+    m.cell(1, 1).markVisited();
+    ASSERT_STEP(Direction::West, firstStepToNearestUnvisited(m, 1, 0));
+}
+
+void test_nearest_unvisited_skips_red() {
+    Maze m;
+    m.setWall(0, 0, Direction::North, WallState::Open);
+    m.cell(0, 0).markVisited();
+    m.cell(0, 1).setColor(TileColor::Red);
+    TEST_ASSERT_FALSE(firstStepToNearestUnvisited(m, 0, 0).has_value());
+}
+
+void test_nearest_unvisited_none_left() {
+    Maze m;
+    m.setWall(0, 0, Direction::North, WallState::Open);
+    m.cell(0, 0).markVisited();
+    m.cell(0, 1).markVisited();
+    TEST_ASSERT_FALSE(firstStepToNearestUnvisited(m, 0, 0).has_value());
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_straight_corridor);
@@ -85,5 +112,8 @@ int main(int, char**) {
     RUN_TEST(test_already_there);
     RUN_TEST(test_never_routes_through_red);
     RUN_TEST(test_red_is_allowed_as_the_target);
+    RUN_TEST(test_nearest_unvisited_picks_the_closest);
+    RUN_TEST(test_nearest_unvisited_skips_red);
+    RUN_TEST(test_nearest_unvisited_none_left);
     return UNITY_END();
 }

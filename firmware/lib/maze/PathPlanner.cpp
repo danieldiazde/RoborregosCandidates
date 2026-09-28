@@ -8,8 +8,7 @@ std::optional<Direction> firstStepToward(const Maze& known,
                                          std::int8_t tx, std::int8_t ty) {
     constexpr int N = Maze::kSize;
 
-    if (fx == tx && fy == ty) return std::nullopt;              
-
+    if (fx == tx && fy == ty) return std::nullopt;               // already there
     if (!known.contains(fx, fy) || !known.contains(tx, ty)) return std::nullopt;
 
     bool        seen[N][N] = {};
@@ -24,7 +23,7 @@ std::optional<Direction> firstStepToward(const Maze& known,
         std::int8_t x = qx[head], y = qy[head]; ++head;
 
         for (int i = 0; i < 4; ++i) {
-            Direction d = dirAt(i);
+            Direction d = static_cast<Direction>(i);
             if (!known.canMove(x, y, d)) continue;
 
             std::int8_t nx = x + deltaX(d);
@@ -44,6 +43,44 @@ std::optional<Direction> firstStepToward(const Maze& known,
         }
     }
     return std::nullopt;   // target not reachable through known-open walls
+}
+
+std::optional<Direction> firstStepToNearestUnvisited(const Maze& known,
+                                                     std::int8_t fx, std::int8_t fy) {
+    constexpr int N = Maze::kSize;
+    if (!known.contains(fx, fy)) return std::nullopt;
+
+    bool        seen[N][N] = {};
+    Direction   first[N][N];
+    std::int8_t qx[N * N], qy[N * N];
+    int head = 0, tail = 0;
+
+    seen[fx][fy] = true;
+    qx[tail] = fx; qy[tail] = fy; ++tail;
+
+    while (head < tail) {
+        std::int8_t x = qx[head], y = qy[head]; ++head;
+
+        for (int i = 0; i < 4; ++i) {
+            Direction d = static_cast<Direction>(i);
+            if (!known.canMove(x, y, d)) continue;
+
+            std::int8_t nx = x + deltaX(d);
+            std::int8_t ny = y + deltaY(d);
+            if (seen[nx][ny]) continue;
+            if (known.cell(nx, ny).color() == TileColor::Red) continue;
+
+            first[nx][ny] = (x == fx && y == fy) ? d : first[x][y];
+
+            // BFS reaches cells in order of distance, so the first
+            // unvisited cell found is the nearest one.
+            if (!known.cell(nx, ny).isVisited()) return first[nx][ny];
+
+            seen[nx][ny] = true;
+            qx[tail] = nx; qy[tail] = ny; ++tail;
+        }
+    }
+    return std::nullopt;   // nothing left to explore
 }
 
 }  // namespace maze

@@ -6,6 +6,7 @@
 #include "WallFollower.hpp"
 #include "DfsExplorer.hpp"
 #include "DfsStraightFirst.hpp"
+#include "FrontierExplorer.hpp"
 
 using namespace maze;
 
@@ -118,6 +119,21 @@ void test_dfs_respects_the_tree_bound()          { checkTreeBound<DfsExplorer>()
 void test_dfs_straight_covers_every_maze()       { checkCoversEverythingExceptRed<DfsStraightFirst>(kAllLoops, 3); }
 void test_dfs_straight_respects_the_tree_bound() { checkTreeBound<DfsStraightFirst>(); }
 
+// ---------------- Frontier ----------------
+
+void test_frontier_covers_every_maze() { checkCoversEverythingExceptRed<FrontierExplorer>(kAllLoops, 3); }
+
+// On looped mazes Frontier should need fewer exploration steps than DFS
+// on average, because it takes shortcuts instead of retracing its trail.
+void test_frontier_beats_dfs_on_looped_mazes() {
+    long frontier = 0, dfs = 0;
+    for (std::uint32_t seed = 0; seed < 100; ++seed) {
+        frontier += runStrategy<FrontierExplorer>(seed, 8).result.exploreSteps;
+        dfs      += runStrategy<DfsExplorer>(seed, 8).result.exploreSteps;
+    }
+    TEST_ASSERT_LESS_THAN(dfs, frontier);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_wall_follower_covers_perfect_mazes);
@@ -126,5 +142,7 @@ int main(int, char**) {
     RUN_TEST(test_dfs_respects_the_tree_bound);
     RUN_TEST(test_dfs_straight_covers_every_maze);
     RUN_TEST(test_dfs_straight_respects_the_tree_bound);
+    RUN_TEST(test_frontier_covers_every_maze);
+    RUN_TEST(test_frontier_beats_dfs_on_looped_mazes);
     return UNITY_END();
 }
