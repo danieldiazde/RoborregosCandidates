@@ -38,6 +38,14 @@ Possession FakeRobotIO::possession() const {
     return possession_;
 }
 
+// FakeRobotIO.cpp
+TileColor FakeRobotIO::readTileAhead() {
+    if (truth_.wall(x_, y_, heading_) != WallState::Open) return TileColor::Unknown;
+    std::int8_t nx = x_ + deltaX(heading_);
+    std::int8_t ny = y_ + deltaY(heading_);
+    return truth_.cell(nx, ny).color();
+}
+
 // Motion
 
 ActionResult FakeRobotIO::moveToward(Direction d, std::uint32_t costMs) {

@@ -31,4 +31,13 @@ std::int8_t deltaY(Direction d) {
     }
 }
 
+std::optional<Direction> directionTo(std::int8_t fromX, std::int8_t fromY,
+                                     std::int8_t toX,   std::int8_t toY) {
+    for (int i = 0; i < 4; ++i) {
+        Direction d = static_cast<Direction>(i);
+        if (fromX + deltaX(d) == toX && fromY + deltaY(d) == toY) return d;
+    }
+    return std::nullopt;   
+}
+
 }  // namespace maze

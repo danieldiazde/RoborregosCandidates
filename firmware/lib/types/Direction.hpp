@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <optional>
 
 namespace maze {
 
@@ -10,5 +11,7 @@ Direction turnLeft(Direction d);
 Direction opposite(Direction d);
 std::int8_t deltaX(Direction d);
 std::int8_t deltaY(Direction d);
+std::optional<Direction> directionTo(std::int8_t fromX, std::int8_t fromY,
+                                     std::int8_t toX,   std::int8_t toY);
 
 }

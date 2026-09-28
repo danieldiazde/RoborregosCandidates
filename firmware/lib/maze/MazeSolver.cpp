@@ -53,6 +53,13 @@ bool MazeSolver::stepToward(Direction d) {
     faceTowards(d); 
     if (pose_.heading != d) return false;
 
+    std::int8_t nx = pose_.x + deltaX(d);
+    std::int8_t ny = pose_.y + deltaY(d);
+
+    TileColor ahead = io_.readTileAhead();
+    if (ahead != TileColor::Unknown) belief_.cell(nx, ny).setColor(ahead);
+    if (ahead == TileColor::Red && !finishing_) return false;   // look, don't step
+
     ActionResult r = io_.advance();
     if (r == ActionResult::Blocked) {
         belief_.setWall(pose_.x, pose_.y, pose_.heading, WallState::Blocked);

@@ -16,6 +16,7 @@ public:
     virtual LineReading senseLine()        = 0;
     virtual TileColor   readTile()         = 0;
     virtual Possession  possession() const = 0;
+    virtual TileColor readTileAhead() = 0;
 
     // Motion
     virtual ActionResult advance()                   = 0;
