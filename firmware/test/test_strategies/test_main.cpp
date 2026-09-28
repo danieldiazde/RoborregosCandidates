@@ -14,79 +14,113 @@ void tearDown() {}
 
 static const MotionCosts kFree{1, 1, 1, 1};   // correctness tests, not timing
 
-template <typename Strategy>
-static RunResult runStrategy(std::uint32_t seed, std::uint8_t loops,
-                             std::uint16_t& moves, std::uint16_t& blocked) {
+static GeneratedMaze makeMaze(std::uint32_t seed, std::uint8_t loops) {
     GeneratorConfig c;
     c.seed = seed;
     c.extraOpenings = loops;
-    GeneratedMaze g = MazeGenerator(c).generate();
+    return MazeGenerator(c).generate();
+}
+
+// Ground truth for "explored everything": cells reachable from the start
+// without ever entering the red tile (entering red ends the round).
+static int reachableWithoutRed(const GeneratedMaze& g) {
+    bool seen[Maze::kSize][Maze::kSize] = {};
+    std::int8_t qx[Maze::kSize * Maze::kSize], qy[Maze::kSize * Maze::kSize];
+    int head = 0, tail = 0;
+
+    seen[g.startX][g.startY] = true;
+    qx[tail] = g.startX; qy[tail] = g.startY; ++tail;
+
+    while (head < tail) {
+        std::int8_t x = qx[head], y = qy[head]; ++head;
+        for (int i = 0; i < 4; ++i) {
+            Direction d = static_cast<Direction>(i);
+            if (!g.maze.canMove(x, y, d)) continue;
+            std::int8_t nx = x + deltaX(d), ny = y + deltaY(d);
+            if (seen[nx][ny]) continue;
+            if (g.maze.cell(nx, ny).color() == TileColor::Red) continue;
+            seen[nx][ny] = true;
+            qx[tail] = nx; qy[tail] = ny; ++tail;
+        }
+    }
+    return tail;
+}
+
+struct Outcome {
+    RunResult     result;
+    std::uint16_t moves;
+    std::uint16_t blocked;
+    int           expectedCells;
+};
+
+template <typename Strategy>
+static Outcome runStrategy(std::uint32_t seed, std::uint8_t loops) {
+    GeneratedMaze g = makeMaze(seed, loops);
 
     FakeRobotIO io(g.maze, g.startX, g.startY, g.startHeading, kFree);
     Strategy strategy;
     MazeSolver solver(io, strategy);
 
-    RunResult r = solver.run();
-    moves   = io.moveCount();
-    blocked = io.blockedCount();
-    return r;
+    Outcome o;
+    o.result        = solver.run();
+    o.moves         = io.moveCount();
+    o.blocked       = io.blockedCount();
+    o.expectedCells = reachableWithoutRed(g);
+    return o;
 }
 
-// ---------------- WallFollower ----------------
-
-void test_wall_follower_covers_perfect_mazes() {
-    for (std::uint32_t seed = 0; seed < 50; ++seed) {
-        std::uint16_t moves, blocked;
-        RunResult r = runStrategy<WallFollower>(seed, 0, moves, blocked);
-        TEST_ASSERT_EQUAL(25, r.cellsVisited);
-        TEST_ASSERT_FALSE(r.strategyErr);
-        TEST_ASSERT_EQUAL(0, blocked);
-    }
-}
-
-void test_wall_follower_terminates_on_looped_mazes() {
-    for (std::uint32_t seed = 0; seed < 50; ++seed) {
-        std::uint16_t moves, blocked;
-        RunResult r = runStrategy<WallFollower>(seed, 8, moves, blocked);
-        TEST_ASSERT_FALSE(r.strategyErr);
-        TEST_ASSERT_EQUAL(0, blocked);
-        TEST_ASSERT_LESS_THAN(MazeSolver::kMaxSteps, r.steps);
-    }
-}
-
-// ---------------- DFS ----------------
+// ---------------- shared checks ----------------
 
 template <typename Strategy>
-static void checkCoversEveryMaze() {
-    const int loopLevels[] = {0, 8, 16};
-    for (int loops : loopLevels)
+static void checkCoversEverythingExceptRed(const int* loopLevels, int levels) {
+    for (int k = 0; k < levels; ++k)
         for (std::uint32_t seed = 0; seed < 50; ++seed) {
-            std::uint16_t moves, blocked;
-            RunResult r = runStrategy<Strategy>(seed, loops, moves, blocked);
-            TEST_ASSERT_EQUAL(25, r.cellsVisited);
-            TEST_ASSERT_FALSE(r.strategyErr);
-            TEST_ASSERT_EQUAL(0, blocked);
+            Outcome o = runStrategy<Strategy>(seed, static_cast<std::uint8_t>(loopLevels[k]));
+            TEST_ASSERT_EQUAL(o.expectedCells, o.result.cellsVisited);
+            TEST_ASSERT_FALSE(o.result.reachedRed);   // no finishing phase yet
+            TEST_ASSERT_FALSE(o.result.strategyErr);
+            TEST_ASSERT_EQUAL(0, o.blocked);
         }
 }
 
 template <typename Strategy>
 static void checkTreeBound() {
     for (std::uint32_t seed = 0; seed < 50; ++seed) {
-        std::uint16_t moves, blocked;
-        runStrategy<Strategy>(seed, 0, moves, blocked);
-        TEST_ASSERT_LESS_OR_EQUAL(48, moves);
+        Outcome o = runStrategy<Strategy>(seed, 0);
+        TEST_ASSERT_LESS_OR_EQUAL(48, o.moves);
     }
 }
 
-void test_dfs_covers_every_maze()                { checkCoversEveryMaze<DfsExplorer>(); }
+static const int kPerfectOnly[] = {0};
+static const int kAllLoops[]    = {0, 8, 16};
+
+// ---------------- WallFollower ----------------
+
+void test_wall_follower_covers_perfect_mazes() {
+    checkCoversEverythingExceptRed<WallFollower>(kPerfectOnly, 1);
+}
+
+void test_wall_follower_is_clean_on_looped_mazes() {
+    for (std::uint32_t seed = 0; seed < 50; ++seed) {
+        Outcome o = runStrategy<WallFollower>(seed, 8);
+        TEST_ASSERT_FALSE(o.result.reachedRed);
+        TEST_ASSERT_FALSE(o.result.strategyErr);
+        TEST_ASSERT_EQUAL(0, o.blocked);
+        TEST_ASSERT_LESS_THAN(MazeSolver::kMaxSteps, o.result.steps);
+    }
+}
+
+// ---------------- DFS (both variants) ----------------
+
+void test_dfs_covers_every_maze()                { checkCoversEverythingExceptRed<DfsExplorer>(kAllLoops, 3); }
 void test_dfs_respects_the_tree_bound()          { checkTreeBound<DfsExplorer>(); }
-void test_dfs_straight_covers_every_maze()       { checkCoversEveryMaze<DfsStraightFirst>(); }
+void test_dfs_straight_covers_every_maze()       { checkCoversEverythingExceptRed<DfsStraightFirst>(kAllLoops, 3); }
 void test_dfs_straight_respects_the_tree_bound() { checkTreeBound<DfsStraightFirst>(); }
 
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_wall_follower_covers_perfect_mazes);
-    RUN_TEST(test_wall_follower_terminates_on_looped_mazes);
+    RUN_TEST(test_wall_follower_is_clean_on_looped_mazes);
     RUN_TEST(test_dfs_covers_every_maze);
     RUN_TEST(test_dfs_respects_the_tree_bound);
     RUN_TEST(test_dfs_straight_covers_every_maze);

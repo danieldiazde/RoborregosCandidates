@@ -22,7 +22,7 @@ public:
     LineReading senseLine() override;
     TileColor   readTile() override;
     Possession  possession() const override;
-    TileColor readTileAhead() = 0;
+    TileColor   readTileAhead() override;
 
     // Motion
     ActionResult advance() override;

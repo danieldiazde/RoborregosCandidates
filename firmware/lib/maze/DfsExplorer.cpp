@@ -16,6 +16,10 @@ std::optional<Direction> DfsExplorer::next(const Maze& known, const Pose& pose) 
     // The start is the bottom of the stack
     if (top_ == 0) stack_[top_++] = {pose.x, pose.y};
 
+    // If the last step we asked for didn't happen ( the runner saw red
+    // ahead and refused), the top of the stack is a cell we never reached.
+    if (stack_[top_ - 1].x != pose.x || stack_[top_ - 1].y != pose.y) --top_;
+
     // Try to go deeper, in whatever order this variant prefers
     Direction candidates[4];
     order(pose, candidates);

@@ -39,7 +39,7 @@ private:
     ExplorationStrategy& strategy_;
     Maze                 belief_;
     Pose                 pose_{0, 0, Direction::North};
-    bool                 finishing_;
+    bool                 finishing_ = false;
 
     Direction     log_[kMaxLog];
     std::uint16_t logLen_ = 0;

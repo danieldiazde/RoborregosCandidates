@@ -1,4 +1,9 @@
 {
-  "name": "RobotIO",
-  "version": "0.1.0"
+  "name": "robot_io",
+  "version": "0.1.0",
+  "description": "IRobotIO interface and FakeRobotIO test double",
+  "dependencies": {
+    "types": "*",
+    "grid": "*"
+  }
 }
