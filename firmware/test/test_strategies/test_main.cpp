@@ -71,23 +71,25 @@ static Outcome runStrategy(std::uint32_t seed, std::uint8_t loops) {
 
 // ---------------- shared checks ----------------
 
+// Explores everything reachable without red, then finishes on red.
 template <typename Strategy>
 static void checkCoversEverythingExceptRed(const int* loopLevels, int levels) {
     for (int k = 0; k < levels; ++k)
         for (std::uint32_t seed = 0; seed < 50; ++seed) {
             Outcome o = runStrategy<Strategy>(seed, static_cast<std::uint8_t>(loopLevels[k]));
-            TEST_ASSERT_EQUAL(o.expectedCells, o.result.cellsVisited);
-            TEST_ASSERT_FALSE(o.result.reachedRed);   // no finishing phase yet
+            TEST_ASSERT_EQUAL(o.expectedCells + 1, o.result.cellsVisited);   // + red at the end
+            TEST_ASSERT_TRUE(o.result.reachedRed);
             TEST_ASSERT_FALSE(o.result.strategyErr);
             TEST_ASSERT_EQUAL(0, o.blocked);
         }
 }
 
+// Exploration drives each tree corridor at most twice: 2 * (cells - 1).
 template <typename Strategy>
 static void checkTreeBound() {
     for (std::uint32_t seed = 0; seed < 50; ++seed) {
         Outcome o = runStrategy<Strategy>(seed, 0);
-        TEST_ASSERT_LESS_OR_EQUAL(48, o.moves);
+        TEST_ASSERT_LESS_OR_EQUAL(2 * (o.expectedCells - 1), o.result.exploreSteps);
     }
 }
 
@@ -103,7 +105,6 @@ void test_wall_follower_covers_perfect_mazes() {
 void test_wall_follower_is_clean_on_looped_mazes() {
     for (std::uint32_t seed = 0; seed < 50; ++seed) {
         Outcome o = runStrategy<WallFollower>(seed, 8);
-        TEST_ASSERT_FALSE(o.result.reachedRed);
         TEST_ASSERT_FALSE(o.result.strategyErr);
         TEST_ASSERT_EQUAL(0, o.blocked);
         TEST_ASSERT_LESS_THAN(MazeSolver::kMaxSteps, o.result.steps);

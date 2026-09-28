@@ -1,4 +1,5 @@
 #include "MazeSolver.hpp"
+#include "PathPlanner.hpp"
 
 namespace maze {
 
@@ -92,8 +93,47 @@ RunResult MazeSolver::run() {
             observe(result);
         }
     }
+    result.exploreSteps = result.steps;
+
+    // Finishing phase: exploration is over (or time is short) — drive to red.
+    finishing_ = true;
+    for (std::uint16_t i = 0; i < kMaxSteps && !result.reachedRed; ++i) {
+        if (io_.millisRemaining() == 0) break;
+
+        std::int8_t tx, ty;
+        if (!findFinishTarget(tx, ty)) break;
+
+        std::optional<Direction> step = firstStepToward(belief_, pose_.x, pose_.y, tx, ty);
+        if (!step) break;
+
+        if (stepToward(*step)) {
+            result.steps++;
+            observe(result);
+        }
+    }
 
     return result;
+}
+
+// Where to finish: the red tile if we've seen it otherwise the nearest
+// unvisited corner we know a path to, since red is always on a corner
+bool MazeSolver::findFinishTarget(std::int8_t& tx, std::int8_t& ty) const {
+    for (std::int8_t x = 0; x < Maze::kSize; ++x)
+        for (std::int8_t y = 0; y < Maze::kSize; ++y)
+            if (belief_.cell(x, y).color() == TileColor::Red) {
+                tx = x; ty = y;
+                return true;
+            }
+
+    const std::int8_t last = Maze::kSize - 1;
+    const std::int8_t corners[4][2] = {{0, 0}, {last, 0}, {0, last}, {last, last}};
+    for (const auto& c : corners) {
+        if (belief_.cell(c[0], c[1]).isVisited()) continue;
+        if (!firstStepToward(belief_, pose_.x, pose_.y, c[0], c[1])) continue;
+        tx = c[0]; ty = c[1];
+        return true;
+    }
+    return false;
 }
 
 } // namespace maze

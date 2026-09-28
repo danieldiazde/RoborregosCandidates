@@ -8,6 +8,7 @@ namespace maze {
 
 struct RunResult {
     std::uint16_t steps        = 0;
+    std::uint16_t exploreSteps = 0;       // steps before the finishing phase
     std::uint8_t  cellsVisited = 0;
     bool          reachedRed   = false;
     bool          timedOut     = false;
@@ -34,6 +35,7 @@ private:
     void observe(RunResult& result);
     void faceTowards(Direction target);
     bool stepToward(Direction d);
+    bool findFinishTarget(std::int8_t& tx, std::int8_t& ty) const;
 
     IRobotIO&            io_;
     ExplorationStrategy& strategy_;
