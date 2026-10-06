@@ -1,6 +1,7 @@
 // firmware/lib/maze/Maze.hpp
 #pragma once
 #include <cstdint>
+#include "config.h"
 #include "Cell.hpp"
 #include "Direction.hpp"
 
@@ -10,7 +11,7 @@ enum class WallState : std::uint8_t { Unknown = 0, Open, Blocked };
 
 class Maze {
 public:
-    static const std::int8_t kSize = 5;
+    static constexpr std::int8_t kSize = config::kMazeSize;
 
     Maze();
 

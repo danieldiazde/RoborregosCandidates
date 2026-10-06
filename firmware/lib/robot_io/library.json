@@ -1,9 +1,8 @@
 {
   "name": "robot_io",
   "version": "0.1.0",
-  "description": "IRobotIO interface and FakeRobotIO test double",
+  "description": "Hardware-independent robot I/O interface",
   "dependencies": {
-    "types": "*",
-    "grid": "*"
+    "types": "*"
   }
 }
