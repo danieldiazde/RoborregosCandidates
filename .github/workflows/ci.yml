@@ -1,0 +1,80 @@
+name: Firmware CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PLATFORMIO_VERSION: 6.2.0
+
+jobs:
+  native-tests:
+    name: Native tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: firmware
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ env.PLATFORMIO_VERSION }}-${{ hashFiles('firmware/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: python -m pip install "platformio==$PLATFORMIO_VERSION"
+
+      - name: Run native tests
+        run: |
+          set -o pipefail
+          pio test -e native 2>&1 | tee /tmp/native-test.log
+          if grep -E "warning:" /tmp/native-test.log; then
+            echo "Compiler warnings are not allowed."
+            exit 1
+          fi
+
+  esp32-build:
+    name: ESP32 build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: firmware
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ env.PLATFORMIO_VERSION }}-${{ hashFiles('firmware/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: python -m pip install "platformio==$PLATFORMIO_VERSION"
+
+      - name: Build ESP32 firmware
+        run: |
+          set -o pipefail
+          pio run -e esp32 2>&1 | tee /tmp/esp32-build.log
+          if grep -E "warning:" /tmp/esp32-build.log; then
+            echo "Compiler warnings are not allowed."
+            exit 1
+          fi
