@@ -1,58 +1,86 @@
 # Software architecture
 
-![Architecture](architecture.drawio.svg)
+![Planned architecture](architecture.drawio.svg)
 
-## Layers
+The diagram is the target architecture. Several boxes and its asynchronous
+observation/action-status vocabulary are planned; they do not describe the
+current blocking runner. Today, `MazeSolver` calls synchronous methods on
+`IRobotIO` and receives each result before continuing. Later phases will add
+stepwise coordination and bounded hardware operations without letting strategy
+depend on Arduino or device drivers.
 
-**Strategy** — `maze/` (pista A) and `levels/` (pista B). Pure logic, no
-`Arduino.h`. Decides *what* to do; never touches hardware directly.
+## Layers and dependency direction
 
-**Coordination** — `robot/` owns mode, deadline and restart recovery.
-`safety/` can cut motor output regardless of strategy.
+- **Foundation:** shared `types`, the `grid` belief map, and `IRobotIO`.
+- **Strategy:** current Pista A maze logic and future Pista B state machines.
+- **Coordination (planned):** mode, elapsed-round deadline, scoring eligibility,
+  recovery, and eventual state/action sequencing.
+- **Subsystems and drivers (planned):** bounded physical actions and observations,
+  with one thin `hal` wrapper per selected chip.
+- **Safety (planned exception):** may gate motor output directly so an emergency
+  stop does not travel up and down the stack.
 
-**Subsystems** — turn intents ("advance one unit") into hardware actions.
+Dependencies otherwise point downward. Python and image buffers stay on the Pi;
+the Pi reports observations and never commands motors.
 
-**Drivers** — `hal/`, one thin wrapper per chip.
+Current declared dependencies are explicit below. Native-only support depends on
+production code, never the reverse.
 
-**Foundation** — `types/` (shared vocabulary), `grid/` (the map),
-`robot_io/` (the interface between strategy and the world).
+| Module | Direct dependencies | Target |
+|---|---|---|
+| `types` | none | production and native |
+| `grid` | `types` | production and native |
+| `robot_io` | `types` | production and native |
+| `maze` | `types`, `grid`, `robot_io` | production and native |
+| `robot_io_fake` | `types`, `grid`, `robot_io` | native only |
+| `maze_gen` | `types`, `grid` | native only |
 
-## Dependencies of the modules built so far
+## Current Pista A behavior
 
-```
-types  ←  grid  ←  robot_io  ←  maze
-                 ↖
-                   maze_gen   (tests and bench only)
-```
+The local frame starts at `(0,0)`, facing North, with the boundary at the
+robot's left. This is a preserved team convention, not a confirmed rulebook
+guarantee. Coordinates use signed integers. The 5×5 `Maze` stores walls on
+shared edges with `Unknown`, `Open`, and `Blocked` states. Unknown edges are
+never passable.
 
-Arrows point from a module to what it depends on. Nothing points upward.
+`MazeSolver` owns its belief map and pose. `FakeRobotIO` owns an independent
+truth map; keeping truth out of strategy prevents tests from granting knowledge
+the robot has not sensed. The runner observes walls and tile color, asks a
+strategy for a direction, turns, checks the tile ahead, and advances through
+the blocking interface.
 
-## Pista A: how a run works
+Exploration refuses a known red tile. The finishing phase can enter red to end
+the normal run. A later phase may implement the rulebook's optional Bonus 1
+return as an explicit post-red state; exploration must still never cross red.
 
-`MazeSolver` is the runner. Strategies only answer "which way next?".
+The architecture does not yet implement real sensing, motor control, scoring,
+terrain completion, display completion, persistence, or recovery. In particular,
+`showColor()` returning is not evidence that a physical display was visible.
 
-1. **Start.** The captain places the robot in its corner with the boundary on
-   its left. The robot calls that cell (0,0), facing North.
-2. **Explore.** Each step: sense walls, record them in the belief map, ask the
-   strategy for a direction, turn, look at the tile ahead, advance.
-3. **Red is never entered while exploring.** The front color sensor reads the
-   next tile; if it is red, the runner refuses the step. Entering red ends the
-   round.
-4. **Finish.** When the strategy has nothing left, or the deadline is near,
-   the runner plans the shortest known route to red with `PathPlanner` and
-   drives there.
+## Persistence and time
+
+Belief restoration and Pista B section skipping are undecided and disabled.
+Pre-mapping remains prohibited. If mid-round recovery is later allowed, a
+trusted clock must preserve total elapsed round time across reset; otherwise
+resume must be blocked. Saving a fresh six-minute remainder would be incorrect.
 
 ## Why this split
 
-The maze logic has to run without the robot. Physical debug cycles cost
-minutes each and hardware time is limited, so the strategy layer depends on
-the `IRobotIO` interface instead of on hardware. The same code runs against
-`FakeRobotIO` on a laptop, which is what makes the benchmark possible.
+Pure logic can be tested before hardware arrives, while every physical claim
+remains explicit. A real adapter can later implement `IRobotIO` without changing
+the strategy contract. Test-only libraries are isolated so an ESP32 dependency
+scan cannot silently include a simulated world.
 
-## Known gaps
+For mentors: ask a student to point to the interface boundary, explain why the
+belief and truth maps differ, and trace one dependency arrow. If an upper layer
+includes a hardware header or a fake appears in the ESP32 build, the boundary
+has been broken.
 
-- `persistence/` is not built. After a lack of progress the robot is power
-  cycled and the belief map is lost. Whether the map may be restored mid-round
-  is a pending question for the judges.
-- The emergency-stop reflex path through `SafetySupervisor` is designed but
-  not built.
+## Source conventions
+
+Firmware stays C++17 with fixed-capacity storage, no heap, and no exceptions.
+Coordinates use `std::int8_t` and fixed-width integers use their `std::` names;
+`std::optional` is allowed. Public function bodies live in `.cpp` files rather
+than inline in headers (inline `constexpr` configuration variables are fine).
+Keep `.hpp` and `.cpp` together in the module and use namespace `maze` unless a
+truly separate module needs its own namespace. `src/` contains only `main.cpp`.

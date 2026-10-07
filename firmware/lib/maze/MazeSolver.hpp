@@ -1,6 +1,7 @@
 // firmware/lib/maze/MazeSolver.hpp
 #pragma once
 #include <cstdint>
+#include "config.h"
 #include "IRobotIO.hpp"
 #include "ExplorationStrategy.hpp"
 
@@ -17,9 +18,9 @@ struct RunResult {
 
 class MazeSolver {
 public:
-    static constexpr std::uint16_t kMaxLog      = 256;
-    static constexpr std::uint16_t kMaxSteps    = 500;
-    static constexpr std::uint32_t kDeadlineMs  = 60000;
+    static constexpr std::uint16_t kMaxLog      = config::kMaxMoveLogEntries;
+    static constexpr std::uint16_t kMaxSteps    = config::kMaxSolverSteps;
+    static constexpr std::uint32_t kDeadlineMs  = config::kSimulatedFinishReserveMs;
 
     MazeSolver(IRobotIO& io, ExplorationStrategy& strategy);
 

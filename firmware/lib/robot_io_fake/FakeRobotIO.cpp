@@ -1,4 +1,4 @@
-// firmware/lib/robot_io/FakeRobotIO.cpp
+// Native-only fake implementation; the library manifest excludes ESP32 builds.
 #include "FakeRobotIO.hpp"
 
 namespace maze {

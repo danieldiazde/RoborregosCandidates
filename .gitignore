@@ -6,10 +6,9 @@
 firmware/.vscode/c_cpp_properties.json
 firmware/.vscode/launch.json
 .venv/
-__pycache__/tools/results.csv
+__pycache__/
+tools/results.csv
 *.gch
 firmware/lib/**/output/
-*.zip
-*.patch
 *.zip
 *.patch

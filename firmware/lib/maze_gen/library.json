@@ -1,7 +1,8 @@
 {
   "name": "maze_gen",
   "version": "0.1.0",
-  "description": "Genearte mazes for testing algorithms",
+  "description": "Native-only generated mazes for tests and benchmarks",
+  "platforms": ["native"],
   "dependencies": {
     "types": "*",
     "grid": "*"

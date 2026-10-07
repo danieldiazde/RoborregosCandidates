@@ -1,0 +1,11 @@
+{
+  "name": "robot_io_fake",
+  "version": "0.1.0",
+  "description": "Native-only robot I/O test double",
+  "platforms": ["native"],
+  "dependencies": {
+    "types": "*",
+    "grid": "*",
+    "robot_io": "*"
+  }
+}

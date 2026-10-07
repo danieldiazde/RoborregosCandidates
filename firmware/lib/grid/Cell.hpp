@@ -8,7 +8,6 @@ namespace maze {
     class Cell {
     private:
         bool visited_ = false;
-        std::uint8_t size_ = 30; //cm
         TileColor color_ = TileColor::Unknown;
         Terrain terrain_ = Terrain::Flat;
     public:
@@ -24,4 +23,3 @@ namespace maze {
 };
 
 }
-

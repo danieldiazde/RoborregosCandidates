@@ -1,134 +1,93 @@
-# RoBorregos Candidates 2026 - Slash Ultrathink
+# RoBorregos Candidates 2026 — Slash Ultrathink
 
-- Controller: ESP32-S3, C++17 / Arduino framework / FreeRTOS
-- Vision: Raspberry Pi Zero 2 W, Python + OpenCV, linked over UART
+Software for the RoBorregos Candidates 2026 challenge. The tournament is
+October 17, 2026. Development currently starts on a computer because no robot,
+camera, display, or controller is connected and confirmed.
 
-See [`docs/architecture.md`](docs/architecture.md) for the layered design.
+The PlatformIO configuration targets an ESP32-S3 development board, but that is
+a software target rather than proof of the team's physical board. Start with the
+[approved roadmap](docs/PLAN.md), [architecture](docs/architecture.md),
+[module notes](docs/classes/README.md), [decisions](docs/adr/), and
+[open questions](docs/OPEN_QUESTIONS.md).
 
----
+## Repository map and status
 
-## Repo layout
-
-```
-docs/         design documents
-firmware/     everything running on the ESP32, plus its tests and benchmark
-vision/       Python running on the Raspberry Pi
-tools/        laptop-side helpers (analysis, telemetry)
-```
-
-### `docs/`
-
-| Path | Contents |
+| Area | Status and contents |
 |---|---|
-| `architecture.md` | the layered design and the rules behind it |
-| `architecture.drawio.svg` | the diagram |
-| `states.md` | robot state machine, including checkpoint restart |
-| `uart.md` | ESP32 ↔ Pi message table and failure handling |
-| `pinout.md` | GPIO map |
-| `classes/` | one class diagram per firmware module |
-| `adr/` | architecture decision records |
+| `firmware/lib/types` | Built: directions, pose, actions/readings, capture, tile color, terrain |
+| `firmware/lib/grid` | Built: 5×5 cells and edge-indexed, tri-state walls |
+| `firmware/lib/robot_io` | Built: hardware-independent `IRobotIO` contract |
+| `firmware/lib/maze` | Built: `MazeSolver`, `WallFollower`, `DfsExplorer`, `DfsStraightFirst`, `FrontierExplorer`, and BFS `PathPlanner` |
+| `firmware/lib/robot_io_fake` | Built for native only: fake truth world, pose, clock, and counters |
+| `firmware/lib/maze_gen` | Built for native only: seeded generator and independent validator |
+| `firmware/src/main.cpp` | Inert Arduino `setup()`/`loop()`; links but operates no hardware |
+| `firmware/lib/levels` | Placeholder only; Pista B is not implemented |
+| `firmware/lib/robot`, `safety` | Planned coordination, recovery, and motor safety gate |
+| `firmware/lib/drivetrain`, `odometry`, `perception`, `capture`, `indicator`, `vision_link` | Planned subsystems; no physical implementation |
+| `firmware/lib/hal`, `persistence` | Planned device wrappers and bounded saved state |
+| `vision/` | Placeholder Python files; no vision application or Pi deployment yet |
+| `tools/` | Placeholder report/telemetry scripts; telemetry is development-only |
+| `docs/` | Phase 0 handover notes; state/UART/pinout docs remain unfinished |
 
-### `firmware/`
+`firmware/include/config.h` is the one place for firmware tunables and unresolved
+hardware configuration. Unknown pins and measurements stay explicitly unset.
+Later hardware phases will add small bring-up programs before integrating drivers.
 
-PlatformIO project. Open `candidates.code-workspace` from the repo root to get
-firmware, vision and docs in one VS Code window.
+## Current maze software
 
-```
-platformio.ini      build configuration: esp32, native (tests), bench
-src/main.cpp        entry point — creates FreeRTOS tasks, nothing else
-lib/<module>/       one folder per module, .hpp and .cpp together
-test/test_<name>/   native unit tests, one suite per folder
-bench/              strategy benchmark, runs on the laptop
-```
+`MazeSolver` maintains a belief map and asks an `ExplorationStrategy` for the
+next direction. Strategy reaches sensors and actions only through the blocking,
+pure C++ `IRobotIO` interface. Tests substitute `FakeRobotIO`, which holds a
+separate ground-truth maze.
 
-Status: **built** = implemented and tested; **planned** = folder exists, no code yet.
+The current convention places the robot at local cell `(0,0)`, facing North,
+with the boundary on its left. This awaits tournament confirmation. The map
+stores each wall once on a cell edge and distinguishes unknown, open, and blocked
+walls. Unknown is never passable. Coordinates are signed because searches inspect
+neighboring positions.
 
-**Foundation** — pure C++, no dependencies on hardware
+During exploration the runner looks at the next tile and refuses to enter red.
+It may enter red only in its finishing phase. The rulebook has an optional
+Bonus 1 return after red; that exception is not implemented yet.
 
-| Module | Status | Contents |
-|---|---|---|
-| `types/` | built | `Direction` (turn arithmetic, `deltaX/Y`, `directionTo`), `Pose`, `Motion` (`RelativeTurn`, `Strafe`, `ActionResult`, `WallReading`, `LineReading`), `Capture` (`GripCommand`, `Possession`), `TileColor`, `Terrain` |
-| `grid/` | built | `Maze` (5×5, edge-indexed walls, tri-state `WallState`), `Cell` (visited, color, terrain) |
-| `robot_io/` | built | `IRobotIO` — the only way strategy touches the world. `FakeRobotIO` — simulated robot for tests and bench |
+Known limitations include a fixed 60-second reserve rather than measured finish
+costs, a 256-entry move log despite a 500-step loop limit, incomplete reset and
+failure behavior, and uncalibrated simulated motion times. The generator creates
+flat colored mazes; it is not a physical or terrain simulator.
 
-**Strategy** — pure C++, must not include `Arduino.h`
+## Build and test
 
-| Module | Status | Contents |
-|---|---|---|
-| `maze/` | built | `MazeSolver` — the shared runner: belief map, pose, move log, red-tile safety net, finishing phase. `ExplorationStrategy` — interface for "which way next?". Strategies: `WallFollower`, `DfsExplorer`, `DfsStraightFirst`, `FrontierExplorer`. `PathPlanner` — BFS over the known map |
-| `levels/` | planned | `BallSearch`, `GapRunner`, `ColorPath` — pista B, three small state machines, no map |
-
-**Coordination**
-
-| Module | Status | Contents |
-|---|---|---|
-| `robot/` | planned | `RobotStateMachine` (mode, deadline, restart), `RealRobotIO` (hardware-backed `IRobotIO`) |
-| `safety/` | planned | `SafetySupervisor` — can cut motor output regardless of what strategy requests |
-
-**Subsystems** — hardware-facing
-
-| Module | Status | Contents |
-|---|---|---|
-| `drivetrain/` | planned | advance one unit, turn 90°/180°, strafe, stop; closed-loop control |
-| `odometry/` | planned | pose, heading, confidence; ramp pitch projection |
-| `perception/` | planned | ToF → walls, front color sensor → tile ahead, IR → white line |
-| `capture/` | planned | gripper: open, close, ball-held check |
-| `indicator/` | planned | OLED: detected color, ArUco ID, status |
-| `vision_link/` | planned | UART to the Pi — parsing, heartbeat freshness |
-| `persistence/` | planned | `MissionState` in NVS, survives the power cycle after a lack of progress |
-| `hal/` | planned | one thin wrapper per chip |
-
-**Test tooling** — never compiled for the ESP32
-
-| Module | Status | Contents |
-|---|---|---|
-| `maze_gen/` | built | `MazeGenerator` (seeded random 5×5 mazes with loops, corner start and red), `MazeValidator` (independent checker) |
-
-### `vision/`
-
-| File | Purpose |
-|---|---|
-| `main.py` | capture loop |
-| `aruco_detector.py` | OpenCV ArUco detection |
-| `ball_detector.py` | detect the ball and report its image position |
-| `serial_link.py` | UART to the ESP32 — receive mode commands; send detections, heartbeat, errors |
-| `calibration/` | camera intrinsics |
-| `systemd/` | service file so vision starts on boot |
-
-### `tools/`
-
-| File | Purpose |
-|---|---|
-| `bench_report.py` | reads the benchmark CSV, produces tables and plots |
-| `telemetry_listener.py` | receives UDP telemetry from the robot |
-
----
-
-## Layering rules
-
-1. **Dependencies point downward only.** `Perception` reports what it sees; it
-   never commands the `Drivetrain`. The one exception is `SafetySupervisor`,
-   which gates motor output directly, because routing an emergency stop up and
-   back down costs latency where latency matters most.
-2. **Strategy modules must not include `Arduino.h`.** They reach the world
-   through `IRobotIO`. This is what makes `pio test -e native` possible.
-3. **`src/` holds only `main.cpp`.** Everything else lives in a `lib/` module.
-4. **Test tooling stays off the robot.** `maze_gen/` and `bench/` are only
-   built by the `native` and `bench` environments.
-
----
-
-## Building
+From `firmware/`:
 
 ```bash
-cd firmware
-
-pio run -e esp32               # build for the ESP32-S3
-pio run -e esp32 -t upload
-pio device monitor
-
-pio test -e native             # all unit tests, on the laptop
-pio test -e native -f test_strategies   # one suite
-
-pio run -e bench && .pio/build/bench/program > ../tools/results.csv
+pio test -e native
+pio run -e esp32
+pio run -e bench
+.pio/build/bench/program > ../tools/results.csv
 ```
+
+The first two commands are required gates for every commit: both must pass with
+zero compiler warnings. The benchmark CSV is generated output and is ignored.
+The ESP32 build proves compilation and linking only, not boot or wiring safety.
+
+Phase 0 validation: **39/39 native tests pass**, the ESP32 build succeeds, and
+both report zero compiler warnings. The benchmark's 10,000 rows exactly match
+the baseline behavior. The target build compiles production libraries and excludes
+native test support. No hardware has been flashed or validated; see the
+[delivery record](docs/PLAN.md#phase-0-delivery-record) for the checked boundaries.
+
+## Engineering rules
+
+- Dependencies point downward. Only safety may directly gate motor output.
+- Strategy is pure C++17 and reaches the world through `IRobotIO`.
+- Firmware uses fixed-capacity storage, no heap, and no exceptions. Public
+  function bodies belong in `.cpp` files; `std::optional` is allowed.
+- Use `std::int8_t` for coordinates and fixed-width `std::` integer types. Keep
+  code in namespace `maze` unless a separate module clearly needs its own.
+- `firmware/src/` contains only `main.cpp`; other firmware lives in `lib/`, with
+  each module's `.hpp` and `.cpp` files together.
+- Test fakes, generators, benchmarks, results, and build products stay off ESP32.
+- Comments explain reasons, invariants, safety boundaries, and surprising rules.
+
+Each phase updates affected docs and ADRs with the code. Generated files stay
+untracked.
